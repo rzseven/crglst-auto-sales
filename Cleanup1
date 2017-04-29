@@ -1,0 +1,64 @@
+import pandas as pd
+import requests, time, csv, datetime, re
+import urllib2, itertools
+
+
+
+list=[]
+
+f = open('/Users/Ruyi/Desktop/clean/carsall.csv', 'rU')
+reader = csv.reader(f)
+for row in reader:
+	if not re.search('[A-Za-z]',row[9]):
+		carkey = row[0]+row[1]+row[2]+row[3]+row[5]+row[9]
+		row.append(carkey)
+		#print row[17::]
+		list.append(row)
+
+k = sorted(list[1::], key = lambda x: (x[17]))
+list_nodup = [k[i] for i in range(len(k)) if i == 0 or k[i][17] != k[i-1][17]]
+
+#k = sorted(list[1::], key = lambda x: (x[0],x[1],x[2],x[3],x[5],x[9]))
+#list_nodup = [k[i] for i in range(len(k)) if i == 0 or k[i][15] != k[i-1][15]]
+
+miles=[]
+for k, line in enumerate(list_nodup):
+	if len(line[5]) == 0:
+		match_1= re.findall(r'\d+[.,]*\d+\s*mile\s',line[15].lower())
+		match_2= re.findall(r'\d+[.,]*\d+\s*miles\s',line[15].lower())	
+		match_3= re.findall(r'\d+[Kk]\s\mile\s',line[15].lower())
+		match_4= re.findall(r'\d+[Kk]\s\miles\s',line[15].lower())
+
+  		if len(match_4)==0:
+  			match_5= re.findall(r'\d+[Kk]\s',line[15].lower())
+  		else:
+			match_5=[] 
+  	  	if len(match_3) > 0:
+  			match_3_new = int(re.sub("[^0-9]", "", match_3[0]))*1000	
+			line[5] = match_3_new
+  		elif len(match_4) > 0:
+  			match_4_new = int(re.sub("[^0-9]", "", match_4[0]))*1000	
+			line[5] = match_4_new
+		elif len(match_5) > 0:	
+			match_5_new = int(re.sub("[^0-9]", "", match_5[0]))*1000
+			line[5] = match_5_new	
+  		elif len(match_1) > 0:
+  			match_1_new = re.sub("[^0-9]", "", match_1[0])
+			line[5] = match_1_new
+  		elif len(match_2) > 0:
+  			match_2_new = re.sub("[^0-9]", "", match_2[0])	
+			line[5] = match_2_new
+
+	elif int(re.sub("[^0-9]", "", line[5])) <= 300:
+			line[5] = int(line[5]) * 1000
+	if re.match('[0-9\$]',line[9]) and int(re.sub("[^0-9]", "", line[9]))>100 and len(str(line[5]))>0:		
+		miles.append(line[0:17])
+rawname = ('/Users/Ruyi/Desktop/craigslist/clean/','allcars','.csv')
+rawname2=''.join(rawname)
+with open(rawname2, 'w') as csvfile:
+	fieldnames = ['Year', 'Make', 'Model', 'title status', 'VIN', 'odometer', 'transmission', 'paint color', 'fuel', 'Price', 'condition', 'cylinders', 'drive', 'type', 'size' , 'Notes', 'City']
+	writer = csv.writer(csvfile)
+	writer.writerow(fieldnames)
+	for line in miles:
+		writer.writerow(line)
+ 
